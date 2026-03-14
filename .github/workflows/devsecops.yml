@@ -267,13 +267,16 @@ jobs:
 
       - name: Download OPA
         run: |
-          curl -sL https://openpolicyagent.org/downloads/v0.64.0/opa_linux_amd64_static -o opa
+          curl -sL https://github.com/open-policy-agent/opa/releases/download/v0.64.0/opa_linux_amd64_static -o opa
           chmod +x opa
+          ./opa version
 
       - name: Évaluer la politique de sécurité
         run: |
-          ./opa eval \
+          RESULT=$(./opa eval \
             --data security/policies/devsecops.rego \
             --input security/policies/project-context.json \
-            --format pretty \
-            "data.devsecops.allow" | grep -q "true" || exit 1
+            --format raw \
+            "data.devsecops.allow")
+          echo "OPA result: $RESULT"
+          [ "$RESULT" = "true" ] || (echo 'Policy gate FAILED' && exit 1)

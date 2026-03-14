@@ -9,6 +9,7 @@ package devsecops
 
 import future.keywords.if
 import future.keywords.in
+import future.keywords.every
 
 # ── Politique principale ──────────────────────────────────────────────────────
 # Le pipeline ne passe QUE si toutes les vérifications sont vertes
