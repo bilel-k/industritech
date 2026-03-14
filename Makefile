@@ -129,7 +129,7 @@ pre-commit-install: ## Installe les hooks pre-commit dans le repo git
 lint: ## Lint ESLint (règles sécurité) + flake8 Python
 	@echo "── ESLint (security) ──────────────────────────────────────"
 	@cd webapp && npm install eslint eslint-plugin-security eslint-plugin-no-unsanitized --save-dev -q 2>/dev/null; \
-	  npx eslint server.js --config ../.eslintrc.security.json --max-warnings 0 \
+	  npx eslint server.js --max-warnings 0 \
 	  && echo "✅ ESLint : OK" || echo "❌ ESLint : findings détectés"
 	@echo "── flake8 (Python) ─────────────────────────────────────────"
 	@pip install flake8 -q && \

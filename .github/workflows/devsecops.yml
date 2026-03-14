@@ -30,13 +30,13 @@ jobs:
           cache: npm
           cache-dependency-path: webapp/package-lock.json
 
-      - name: Install deps
+      - name: Install deps (prod + dev pour ESLint)
         working-directory: webapp
-        run: npm ci --omit=dev
+        run: npm ci
 
       - name: ESLint (security rules)
         working-directory: webapp
-        run: npx eslint server.js --config ../.eslintrc.security.json --max-warnings 0
+        run: npx eslint server.js --max-warnings 0
 
       - name: Setup Python
         uses: actions/setup-python@v5

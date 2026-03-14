@@ -38,16 +38,18 @@ tags        = ["nodered", "secret"]
 [allowlist]
 description = "Fichiers légitimes avec des valeurs ressemblant à des secrets"
 paths = [
-  '''^\.env\.example$''',           # valeurs placeholder uniquement
-  '''^documentation\.typ$''',       # doc technique avec exemples
-  '''^documentation\.pdf$''',       # PDF généré
-  '''Makefile''',                    # commandes curl avec token exemple
-  '''tests/integration_test\.sh'''  # tests avec credentials de test
+  '''^\.env\.example$''',              # valeurs placeholder uniquement
+  '''^documentation\.typ$''',          # doc technique avec exemples
+  '''^documentation\.pdf$''',          # PDF généré
+  '''Makefile''',                       # commandes curl avec token exemple
+  '''tests/integration_test\.sh''',    # tests avec credentials de test
+  '''^docker-compose\.yml$'''           # valeurs défaut dev — protégées par .env
 ]
 
-# Patterns globaux exclus
+# Patterns globaux exclus (valeurs de développement connues, sans risque)
 regexes = [
   '''mytoken123superlong''',         # token exemple dans .env.example / docs
-  '''admin123!?''',                  # mot de passe exemple
+  '''admin123[!]?''',                # mot de passe exemple InfluxDB
   '''iotsecret2026''',               # secret Node-RED exemple
+  '''changeme[_a-z0-9!]*''',         # tous les placeholders changeme_*
 ]

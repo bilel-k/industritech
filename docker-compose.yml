@@ -22,7 +22,8 @@ services:
     networks:
       - iot-network
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-u", "admin", "-P", "admin123"]
+      # Port 1883 est allow_anonymous true — pas besoin de credentials
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/broker/version", "-C", "1", "-h", "localhost", "-p", "1883", "-W", "3"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -111,7 +112,7 @@ services:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
       - MQTT_USER=${MQTT_USER_SENSOR:-sensor}
-      - MQTT_PASS=${MQTT_PASS_SENSOR:-sensor123}
+      - MQTT_PASS=${MQTT_PASS_SENSOR}
     networks:
       - iot-network
     depends_on:
