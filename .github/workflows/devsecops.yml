@@ -190,7 +190,7 @@ jobs:
         run: docker build -t $IMAGE_SIM:ci simulator/
 
       - name: Trivy — scan webapp (SARIF, non bloquant)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
           format: 'sarif'
@@ -201,7 +201,7 @@ jobs:
           trivyignores: '.trivyignore'
 
       - name: Trivy — scan simulateur (SARIF, non bloquant)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: '${{ env.IMAGE_SIM }}:ci'
           format: 'sarif'
@@ -225,16 +225,18 @@ jobs:
 
       - name: Upload SARIF (Trivy) → GitHub Security tab
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-webapp.sarif
 
       - name: Generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
           format: 'cyclonedx'
           output: 'sbom-webapp.json'
+          exit-code: '0'
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
