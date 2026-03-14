@@ -42,7 +42,7 @@ Thumbs.db
 sbom-*.json
 trivy-results/
 zap-report/
-documentation.pdf
+/documentation.pdf
 
 # ─── Patch files ─────────────────────────────────────────────────────────────
 *.patch
