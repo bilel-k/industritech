@@ -112,7 +112,7 @@ services:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
       - MQTT_USER=${MQTT_USER_SENSOR:-sensor}
-      - MQTT_PASS=${MQTT_PASS_SENSOR}
+      - MQTT_PASS=${MQTT_PASS_SENSOR:-changeme_sensor_2026}
     networks:
       - iot-network
     depends_on:
