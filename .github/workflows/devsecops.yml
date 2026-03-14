@@ -189,39 +189,41 @@ jobs:
       - name: Build simulator image
         run: docker build -t $IMAGE_SIM:ci simulator/
 
+      - name: Install Trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+
       - name: Trivy — scan webapp (SARIF, non bloquant)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
-          format: 'sarif'
-          output: 'trivy-webapp.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '0'
-          ignore-unfixed: true
-          trivyignores: '.trivyignore'
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-webapp.sarif \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --ignorefile .trivyignore \
+            --exit-code 0 \
+            --no-progress \
+            $IMAGE_WEBAPP:ci
 
       - name: Trivy — scan simulateur (SARIF, non bloquant)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: '${{ env.IMAGE_SIM }}:ci'
-          format: 'sarif'
-          output: 'trivy-sim.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '0'
-          ignore-unfixed: true
-
-      - name: Trivy — gate bloquant (CRITICAL fixable uniquement)
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $HOME/.cache/trivy:/root/.cache/trivy \
-            aquasec/trivy:latest image \
+          trivy image \
+            --format sarif \
+            --output trivy-sim.sarif \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 0 \
+            --no-progress \
+            $IMAGE_SIM:ci
+
+      - name: Trivy — gate CRITICAL fixable (informatif)
+        run: |
+          trivy image \
             --severity CRITICAL \
             --ignore-unfixed \
-            --exit-code 1 \
+            --exit-code 0 \
             --no-progress \
-            $IMAGE_WEBAPP:ci || true
-          echo "✅ Gate CRITICAL : aucun CVE CRITICAL fixable détecté (ou ignoré)"
+            $IMAGE_WEBAPP:ci
+          echo "✅ Gate CRITICAL terminé (informatif uniquement)"
 
       - name: Upload SARIF (Trivy) → GitHub Security tab
         if: always()
@@ -231,12 +233,13 @@ jobs:
           sarif_file: trivy-webapp.sarif
 
       - name: Generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
-          format: 'cyclonedx'
-          output: 'sbom-webapp.json'
-          exit-code: '0'
+        run: |
+          trivy image \
+            --format cyclonedx \
+            --output sbom-webapp.json \
+            --exit-code 0 \
+            --no-progress \
+            $IMAGE_WEBAPP:ci
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
