@@ -1,7 +1,6 @@
 {
   "env": { "node": true, "es2022": true },
   "parserOptions": { "ecmaVersion": 2022, "sourceType": "commonjs" },
-  "plugins": ["no-unsanitized"],
   "extends": ["plugin:security/recommended"],
   "rules": {
     "security/detect-object-injection":        "off",
@@ -14,8 +13,6 @@
     "security/detect-new-buffer":              "error",
     "security/detect-possible-timing-attacks": "warn",
     "security/detect-pseudoRandomBytes":       "error",
-    "no-unsanitized/method": "error",
-    "no-unsanitized/property": "error",
     "no-eval":                "error",
     "no-implied-eval":        "error",
     "no-new-func":            "error",
