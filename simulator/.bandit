@@ -1,0 +1,19 @@
+# ─── Bandit configuration — simulateur Python ────────────────────────────────
+# Doc : https://bandit.readthedocs.io/
+# Utilisation : bandit -r simulator/ -c simulator/.bandit
+[bandit]
+# Niveau minimum pour que le finding soit reporté
+level = LOW
+# Confidence minimum
+confidence = LOW
+
+# Tests à exclure (false-positives connus)
+skips =
+    B101,   # assert statements utilisés uniquement dans les tests
+    B311    # random — le simulateur utilise random volontairement (pas crypto)
+
+# Répertoires à exclure
+exclude_dirs =
+    .venv,
+    __pycache__,
+    tests/

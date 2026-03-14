@@ -1,0 +1,48 @@
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+.env
+*.env.local
+influxdb/config/influx-configs
+node-red/data/flows_cred.json
+
+# ─── Certificats TLS ─────────────────────────────────────────────────────────
+mosquitto/config/ca.key
+mosquitto/config/ca.crt
+mosquitto/config/mosquitto.key
+mosquitto/config/mosquitto.crt
+mosquitto/config/mosquitto.csr
+mosquitto/config/*.srl
+mosquitto/config/passwd
+
+# ─── Données volumes Docker ───────────────────────────────────────────────────
+influxdb/data/
+grafana/data/
+mosquitto/data/
+mosquitto/log/
+node-red/data/
+
+# ─── Node.js ─────────────────────────────────────────────────────────────────
+node_modules/
+webapp/node_modules/
+npm-debug.log
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── DevSecOps artifacts ─────────────────────────────────────────────────────
+*.sarif
+.secrets.baseline
+sbom-*.json
+trivy-results/
+zap-report/
+documentation.pdf
+
+# ─── Patch files ─────────────────────────────────────────────────────────────
+*.patch

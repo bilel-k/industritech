@@ -1,0 +1,41 @@
+{
+  "trivy": {
+    "critical_cves": 0,
+    "high_cves": 0
+  },
+  "npm_audit": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0
+  },
+  "pip_audit": {
+    "cves_found": 0
+  },
+  "gitleaks": {
+    "secrets_found": 0
+  },
+  "containers": [
+    { "name": "iot-webapp",      "user": "node",   "readonly_rootfs": false },
+    { "name": "iot-sensor-sim",  "user": "appuser","readonly_rootfs": true  },
+    { "name": "iot-mosquitto",   "user": "mosquitto","readonly_rootfs": false },
+    { "name": "iot-influxdb",    "user": "influxdb","readonly_rootfs": false },
+    { "name": "iot-grafana",     "user": "grafana", "readonly_rootfs": false }
+  ],
+  "mosquitto": {
+    "tls_port": 8883,
+    "cert_present": true,
+    "anonymous_internal": true,
+    "anonymous_external": false
+  },
+  "webapp": {
+    "rate_limit_enabled": true,
+    "helmet_enabled": true,
+    "csp_enabled": true,
+    "input_validation": true
+  },
+  "sast": {
+    "semgrep_findings_critical": 0,
+    "bandit_findings_high": 0
+  }
+}

@@ -1,0 +1,25 @@
+# Clients anonymes (port 1883 Docker interne - Node-RED, webapp)
+topic readwrite factory/#
+topic readwrite processed/#
+topic readwrite alerts/#
+
+# admin : acces total
+user admin
+topic readwrite #
+topic readwrite $SYS/#
+
+# sensor : publie sur factory/#
+user sensor
+topic readwrite factory/#
+
+# nodered : lit et ecrit factory/#, processed/#, alerts/#
+user nodered
+topic readwrite factory/#
+topic readwrite processed/#
+topic readwrite alerts/#
+
+# readonly : lecture seule
+user readonly
+topic read factory/#
+topic read processed/#
+topic read alerts/#

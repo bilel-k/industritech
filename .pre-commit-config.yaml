@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Pre-commit hooks — IndustriTech IoT DevSecOps
+# Installation : pip install pre-commit && pre-commit install
+# Déclenchement : avant chaque git commit (automatique)
+# Run manuel : pre-commit run --all-files
+# ─────────────────────────────────────────────────────────────────────────────
+fail_fast: false   # tous les hooks tournent même si l'un échoue
+
+repos:
+  # ── Hooks standards ─────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: detect-private-key          # bloque les clés privées en clair
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']      # interdit de commiter direct sur main
+
+  # ── Gitleaks — détection de secrets ─────────────────────────────────────────
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        args: ['--config=.gitleaks.toml', '--verbose']
+
+  # ── detect-secrets — couche complémentaire ───────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: 'package-lock\.json|\.env\.example'
+
+  # ── Bandit — SAST Python ─────────────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ['-c', 'simulator/.bandit', '-ll']
+        files: '^simulator/.*\.py$'
+
+  # ── ESLint — SAST Node.js ────────────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: eslint-security
+        name: ESLint (security rules)
+        entry: bash -c 'cd webapp && npx eslint server.js --config ../.eslintrc.security.json --max-warnings 0'
+        language: system
+        files: '^webapp/.*\.js$'
+        pass_filenames: false
+
+  # ── Hadolint — lint Dockerfiles ──────────────────────────────────────────────
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        args: ['--config', '.hadolint.yaml']
+
+  # ── Trivy — scan rapide fichiers de config ───────────────────────────────────
+  - repo: https://github.com/aquasecurity/trivy
+    rev: v0.51.1
+    hooks:
+      - id: trivy
+        args: ['fs', '--severity', 'HIGH,CRITICAL', '--exit-code', '1', '--scanners', 'vuln,secret,config', '.']

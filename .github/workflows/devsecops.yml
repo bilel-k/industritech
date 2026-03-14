@@ -1,0 +1,273 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline DevSecOps — IndustriTech IoT
+# Stages : lint → SAST → SCA → image-scan → DAST → deploy (manuel)
+# ─────────────────────────────────────────────────────────────────────────────
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_WEBAPP: iot-monitoring-webapp
+  IMAGE_SIM:    iot-sensor-sim
+  TRIVY_EXIT_CODE: 1          # bloque si CRITICAL trouvé
+
+# ─── 1. LINT ─────────────────────────────────────────────────────────────────
+jobs:
+  lint:
+    name: 📐 Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install deps
+        working-directory: webapp
+        run: npm ci --omit=dev
+
+      - name: ESLint (security rules)
+        working-directory: webapp
+        run: npx eslint server.js --config ../.eslintrc.security.json --max-warnings 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Lint Python (flake8)
+        run: |
+          pip install flake8 -q
+          flake8 simulator/sensor_simulator.py --max-line-length=120 --count
+
+# ─── 2. SAST ─────────────────────────────────────────────────────────────────
+  sast:
+    name: 🔍 SAST
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      # Semgrep — règles OWASP + secrets + Node.js
+      - name: Semgrep SAST
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >
+            p/owasp-top-ten
+            p/nodejs
+            p/secrets
+            p/docker
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: false
+
+      # Bandit — sécurité Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Bandit (Python SAST)
+        run: |
+          pip install bandit -q
+          bandit -r simulator/ -c simulator/.bandit -ll -f json -o bandit-report.json
+          echo "=== Bandit Summary ===" && python3 -c "
+          import json
+          r = json.load(open('bandit-report.json'))
+          metrics = r.get('metrics', {}).get('_totals', {})
+          high = metrics.get('SEVERITY.HIGH', 0)
+          crit = metrics.get('SEVERITY.UNDEFINED', 0)
+          print(f'HIGH: {high}  MEDIUM: {metrics.get(\"SEVERITY.MEDIUM\",0)}  LOW: {metrics.get(\"SEVERITY.LOW\",0)}')
+          if high > 0: exit(1)
+          "
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+# ─── 3. SCA — Analyse des dépendances ───────────────────────────────────────
+  sca:
+    name: 📦 SCA
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: npm audit (webapp)
+        working-directory: webapp
+        run: |
+          npm ci --omit=dev
+          npm audit --audit-level=high --json | tee npm-audit.json
+          python3 -c "
+          import json, sys
+          d = json.load(open('npm-audit.json'))
+          v = d.get('metadata', {}).get('vulnerabilities', {})
+          crit = v.get('critical', 0)
+          high = v.get('high', 0)
+          print(f'CRITICAL: {crit}  HIGH: {high}  MODERATE: {v.get(\"moderate\",0)}  LOW: {v.get(\"low\",0)}')
+          if crit + high > 0:
+              print('FAIL: vulnerabilités HIGH/CRITICAL trouvées')
+              sys.exit(1)
+          print('PASS: aucune vulnérabilité critique')
+          "
+
+      - name: pip-audit (simulateur)
+        run: |
+          pip install pip-audit -q
+          pip-audit -r simulator/requirements.txt --format json | tee pip-audit.json
+          python3 -c "
+          import json, sys
+          d = json.load(open('pip-audit.json'))
+          vulns = sum(len(p['vulns']) for p in d.get('dependencies', []))
+          print(f'Vulnérabilités Python: {vulns}')
+          if vulns > 0:
+              print('FAIL: CVE(s) détectées')
+              sys.exit(1)
+          print('PASS')
+          "
+
+      - name: Upload SCA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-reports
+          path: |
+            webapp/npm-audit.json
+            pip-audit.json
+
+# ─── 4. Secret scanning ──────────────────────────────────────────────────────
+  secrets-scan:
+    name: 🔐 Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # historique complet pour Gitleaks
+
+      - name: Gitleaks — détection de secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}   # optionnel (plan pro)
+
+# ─── 5. Build & Image scan ───────────────────────────────────────────────────
+  image-scan:
+    name: 🐳 Image Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: [sast, sca, secrets-scan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build webapp image
+        run: docker build -t $IMAGE_WEBAPP:ci webapp/
+
+      - name: Build simulator image
+        run: docker build -t $IMAGE_SIM:ci simulator/
+
+      - name: Trivy — scan webapp
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
+          format: 'sarif'
+          output: 'trivy-webapp.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+
+      - name: Trivy — scan simulateur
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_SIM }}:ci'
+          format: 'sarif'
+          output: 'trivy-sim.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload SARIF (Trivy) → GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-webapp.sarif
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_WEBAPP }}:ci'
+          format: 'cyclonedx'
+          output: 'sbom-webapp.json'
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-webapp.json
+
+# ─── 6. DAST — Test en boîte noire ───────────────────────────────────────────
+  dast:
+    name: 🌐 DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: image-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Démarrer la stack (subset)
+        run: |
+          docker compose up -d mosquitto influxdb webapp
+          sleep 20
+          curl -sf http://localhost:8080/api/status || (docker compose logs webapp && exit 1)
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap-rules.tsv'
+          allow_issue_writing: false
+          fail_action: true
+          artifact_name: 'zap-report'
+          cmd_options: '-a -j'
+
+      - name: Arrêter la stack
+        if: always()
+        run: docker compose down
+
+# ─── 7. Policy gate (OPA / Rego) ─────────────────────────────────────────────
+  policy:
+    name: 📋 Policy Gate (OPA)
+    runs-on: ubuntu-latest
+    needs: [sast, sca]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OPA
+        run: |
+          curl -sL https://openpolicyagent.org/downloads/v0.64.0/opa_linux_amd64_static -o opa
+          chmod +x opa
+
+      - name: Évaluer la politique de sécurité
+        run: |
+          ./opa eval \
+            --data security/policies/devsecops.rego \
+            --input security/policies/project-context.json \
+            --format pretty \
+            "data.devsecops.allow" | grep -q "true" || exit 1

@@ -1,0 +1,221 @@
+{
+  "id": null,
+  "uid": "iot-supervision",
+  "title": "🏭 Supervision IoT – IndustriTech",
+  "description": "Dashboard de supervision temps réel – Salle serveur, Atelier, Local électrique",
+  "tags": ["iot", "industritech", "supervision"],
+  "timezone": "Europe/Paris",
+  "refresh": "5s",
+  "time": { "from": "now-1h", "to": "now" },
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "🖥️ Salle Serveur",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Température – Rack Principal",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "options": { "tooltip": {"mode": "single"}, "legend": {"displayMode": "list"} },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green", "value": null},
+            {"color": "yellow", "value": 25},
+            {"color": "red",    "value": 28}
+          ]},
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"salle_serveur\" and r.capteur == \"temperature\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 3,
+      "type": "gauge",
+      "title": "Température Actuelle – Salle Serveur",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 15, "max": 40,
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green",  "value": null},
+            {"color": "yellow", "value": 25},
+            {"color": "red",    "value": 28}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"salle_serveur\" and r.capteur == \"temperature\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> last()",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 4,
+      "type": "gauge",
+      "title": "Humidité Actuelle – Salle Serveur",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green",  "value": null},
+            {"color": "yellow", "value": 60},
+            {"color": "red",    "value": 70}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"salle_serveur\" and r.capteur == \"humidite\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> last()",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 10,
+      "type": "row",
+      "title": "⚙️ Atelier Technique",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Vibration Presse – Tendance",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocityms",
+          "custom": { "lineWidth": 2, "fillOpacity": 8 },
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green", "value": null},
+            {"color": "orange","value": 4},
+            {"color": "red",   "value": 5}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"atelier\" and r.capteur == \"vibration\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Courant Robot – Temps réel",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "amp",
+          "custom": { "lineWidth": 2 },
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green",  "value": null},
+            {"color": "orange", "value": 12},
+            {"color": "red",    "value": 15}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"atelier\" and r.capteur == \"courant\")\n  |> filter(fn: (r) => r._field == \"valeur\")",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 20,
+      "type": "row",
+      "title": "⚡ Local Électrique",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "collapsed": false
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Luminosité – Armoire 1",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lux",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "red",    "value": null},
+            {"color": "yellow", "value": 50},
+            {"color": "green",  "value": 100}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r.zone == \"local_elec\" and r.capteur == \"luminosite\")\n  |> filter(fn: (r) => r._field == \"valeur\")",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "Nombre d'Anomalies (1h)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "options": {
+        "reduceOptions": {"calcs": ["sum"]},
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [
+            {"color": "green",  "value": null},
+            {"color": "yellow", "value": 5},
+            {"color": "red",    "value": 10}
+          ]}
+        }
+      },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"machine_data\")\n  |> filter(fn: (r) => r._field == \"anomalie\")\n  |> filter(fn: (r) => r._value == 1)\n  |> count()",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 30,
+      "type": "row",
+      "title": "🔔 Alertes Récentes",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "collapsed": false
+    },
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Journal des Alertes",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
+      "options": { "sortBy": [{"displayName": "Time", "desc": true}] },
+      "targets": [{
+        "datasource": "InfluxDB-IoT",
+        "query": "from(bucket: \"iot_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"alertes\")\n  |> filter(fn: (r) => r._field == \"message\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+        "refId": "A"
+      }]
+    }
+  ]
+}

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndustriTech | Real-Time Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#0B0F19', 800: '#111827', 700: '#1F2937', card: '#161e31', border: '#2A3441' },
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a', glow: 'rgba(59, 130, 246, 0.5)' }
+                    },
+                    boxShadow: { 'glass': '0 4px 30px rgba(0, 0, 0, 0.1)', 'glow': '0 0 20px rgba(59, 130, 246, 0.3)' }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <style type="text/tailwindcss">
+        .nav-btn { @apply flex items-center lg:justify-start justify-center gap-3.5 w-full p-3.5 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 transition-all font-semibold text-sm; }
+        .nav-btn.active { @apply bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-1 ring-brand-500/20 shadow-[inset_0_0_12px_rgba(59,130,246,0.1)]; }
+    </style>
+    <link rel="stylesheet" href="/css/style.css">
+    <style id="theme-style"></style>
+    </head>
+<body class="bg-gray-50 dark:bg-dark-900 text-gray-900 dark:text-gray-100 font-sans antialiased flex h-screen overflow-hidden selection:bg-brand-500 selection:text-white transition-colors duration-300">
+
+    <aside class="w-20 lg:w-64 flex flex-col items-center lg:items-stretch bg-white dark:bg-dark-800 border-r border-gray-200 dark:border-dark-border transition-all duration-300 z-20 shadow-2xl lg:shadow-none">
+        <div class="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-gray-200 dark:border-dark-border relative overflow-hidden">
+            <div class="absolute inset-0 accent-logo-gradient"></div>
+            <img src="/logo-it.png" alt="IndustriTech" class="h-10 w-10 object-contain rounded-xl z-10 flex-shrink-0 transition-[filter] duration-300 dark:brightness-0 dark:invert dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]">
+            <span class="ml-3 hidden lg:block font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-400 z-10">
+                IndustriTech
+            </span>
+        </div>
+        
+        <div class="flex-1 w-full py-6 flex flex-col gap-2 px-3 overflow-y-auto">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest pl-3 mb-2 hidden lg:block">Navigation</div>
+            <button class="nav-btn active group" data-zone="all">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                <span class="hidden lg:block flex-1">Vue Globale</span>
+                <span class="hidden lg:inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md bg-gray-100 dark:bg-dark-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 zone-count" data-zone="all">0</span>
+            </button>
+            <button class="nav-btn group" data-zone="salle_serveur">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                <span class="hidden lg:block flex-1">Salle Serveur</span>
+                <span class="hidden lg:inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md bg-gray-100 dark:bg-dark-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 zone-count" data-zone="salle_serveur">0</span>
+            </button>
+            <button class="nav-btn group" data-zone="atelier">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                <span class="hidden lg:block flex-1">Atelier Principal</span>
+                <span class="hidden lg:inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md bg-gray-100 dark:bg-dark-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 zone-count" data-zone="atelier">0</span>
+            </button>
+            <button class="nav-btn group" data-zone="local_elec">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="hidden lg:block flex-1">Local Électrique</span>
+                <span class="hidden lg:inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md bg-gray-100 dark:bg-dark-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 zone-count" data-zone="local_elec">0</span>
+            </button>
+            <button class="nav-btn group" data-page="3d">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                <span class="hidden lg:block">Vue 3D Usine</span>
+            </button>
+            <button class="nav-btn group" data-page="maintenance">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"></path></svg>
+                <span class="hidden lg:block">Maintenance</span>
+            </button>
+            <button class="nav-btn group" data-page="carte">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                <span class="hidden lg:block">Cartographie</span>
+            </button>
+            <button class="nav-btn group" data-page="compare">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="hidden lg:block">Comparaison</span>
+            </button>
+            <button class="nav-btn group relative" data-page="alerts">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <span class="hidden lg:block flex-1">Alertes</span>
+                <span id="alerts-badge" class="hidden min-w-[1.4rem] h-5 px-1 rounded-md bg-rose-500 text-white text-[10px] font-bold items-center justify-center lg:flex">0</span>
+            </button>
+            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-widest pl-3 mb-2 hidden lg:block">Interface</div>
+                <button class="nav-btn group" data-page="appearance">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                    <span class="hidden lg:block">Apparence</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-200 dark:border-dark-border w-full bg-gray-50/50 dark:bg-dark-900/50">
+            <div class="flex flex-col gap-2">
+                <a href="http://localhost:3000" target="_blank" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 flex items-center justify-center lg:justify-start gap-3 p-2.5 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
+                    <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]"></span> 
+                    <span class="hidden lg:block">Grafana Analytics</span>
+                </a>
+                <a href="http://localhost:1880" target="_blank" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 flex items-center justify-center lg:justify-start gap-3 p-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span> 
+                    <span class="hidden lg:block">Node-RED Flows</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-screen w-full relative">
+        <header class="h-20 flex items-center justify-between px-6 lg:px-10 bg-white/70 dark:bg-dark-900/70 backdrop-blur-xl border-b border-gray-200 dark:border-dark-border z-10 sticky top-0">
+            <div>
+                <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Supervision Temps Réel</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> <span id="uptime-text">monitoring actif</span>
+                </p>
+            </div>
+
+            <div class="flex items-center gap-4 lg:gap-6">
+                <div class="flex items-center gap-2.5 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-border px-4 py-2 rounded-full shadow-sm">
+                    <div class="relative flex h-2.5 w-2.5">
+                        <span id="mqtt-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span id="mqtt-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </div>
+                    <span id="mqtt-status" class="text-[11px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-300">Offline</span>
+                </div>
+
+                <div class="hidden sm:flex flex-col items-end border-l border-gray-200 dark:border-dark-border pl-6">
+                    <span id="clock-time" class="text-lg font-bold tabular-nums tracking-tight">--:--:--</span>
+                    <span id="clock-date" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest">--</span>
+                </div>
+
+                <button id="kiosk-btn" title="Mode kiosque (démo automatique)" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
+                </button>
+                <button id="export-pdf" title="Exporter rapport PDF" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 13l2 2 4-4"/></svg>
+                </button>
+                <a href="/documentation.pdf" target="_blank" rel="noopener" title="Documentation technique (PDF)" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </a>
+                <button onclick="document.getElementById('demo-modal').classList.remove('hidden')" title="Scénario de panne (démo jury)" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+                <button id="sound-toggle" title="Activer les alertes sonores" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-brand-500 dark:hover:text-brand-500 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg id="sound-off-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                    <svg id="sound-on-icon" class="w-5 h-5 hidden text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-4-4H4a1 1 0 01-1-1V11a1 1 0 011-1h4l4-4z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.07 4.93a10 10 0 010 14.14"></path></svg>
+                </button>
+                <button id="theme-toggle" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-500 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors border border-transparent dark:border-dark-border">
+                    <svg class="w-5 h-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <svg class="w-5 h-5 hidden dark:block text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <main id="page-dashboard" class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 pb-32">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- KPI Sensors -->
+                <div class="kpi-card relative overflow-hidden bg-white dark:bg-dark-card rounded-3xl p-6 border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-6 group hover:border-blue-500/30 transition-all">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shadow-inner border border-blue-100 dark:border-blue-800/30 z-10">
+                        📡
+                    </div>
+                    <div class="z-10">
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Capteurs Actifs</p>
+                        <h3 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight" id="kpi-sensors">0</h3>
+                    </div>
+                </div>
+
+                <!-- KPI Flux -->
+                <div class="kpi-card relative overflow-hidden bg-white dark:bg-dark-card rounded-3xl p-6 border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-6 group hover:border-emerald-500/30 transition-all">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-2xl shadow-inner border border-emerald-100 dark:border-emerald-800/30 z-10">
+                        ⚡
+                    </div>
+                    <div class="z-10">
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Trafic MQTT</p>
+                        <div class="flex items-baseline gap-2">
+                            <h3 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight" id="kpi-points">0</h3>
+                            <span class="text-emerald-500 text-xs font-bold uppercase tracking-widest flex items-center gap-1">msg/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Alertes -->
+                <div class="kpi-card relative overflow-hidden bg-white dark:bg-dark-card rounded-3xl p-6 border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-6 group hover:border-rose-500/30 transition-all">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-900/40 dark:to-rose-800/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-2xl shadow-inner border border-rose-100 dark:border-rose-800/30 z-10">
+                        ⚠️
+                    </div>
+                    <div class="z-10">
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Alertes Journalières</p>
+                        <h3 class="text-4xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight" id="kpi-alerts">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Energy & CO₂ banner -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="col-span-2 md:col-span-1 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-xl">⚡</div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Énergie session</p>
+                        <p class="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums"><span id="kpi-energy">0.00</span> <span class="text-sm font-bold text-gray-400">kWh</span></p>
+                    </div>
+                </div>
+                <div class="col-span-2 md:col-span-1 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-xl">🌿</div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Émissions CO₂</p>
+                        <p class="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums"><span id="kpi-co2">0.0</span> <span class="text-sm font-bold text-gray-400">g</span></p>
+                    </div>
+                </div>
+                <div class="col-span-2 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-xl">🤖</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">IA — Anomalie principale</p>
+                        <p class="text-sm font-bold text-gray-900 dark:text-white truncate" id="kpi-anomaly">En attente de données…</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-2xl font-extrabold text-violet-500 tabular-nums" id="kpi-anomaly-score">—</span>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">% anomalie</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Middle Grid -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:items-stretch">
+                
+                <!-- Main Chart -->
+                <div class="xl:col-span-2 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col relative overflow-hidden h-[380px]">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex justify-between items-center mb-6 z-10">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Fréquence du Trafic Global</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Bande passante matérielle (msg per sec)</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2 w-2 mr-1">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full accent-live-ping opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 accent-live-dot"></span>
+                            </span>
+                            <span class="text-xs font-bold uppercase tracking-widest accent-live-text">Live Stream</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 w-full relative min-h-[220px] z-10">
+                        <canvas id="main-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live Event Log -->
+                <div class="xl:col-span-1 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col h-[380px] overflow-hidden relative">
+                    <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-dark-border">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">Journal d'Événements</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Flux des anomalies</p>
+                        </div>
+                        <button id="log-clear-btn" class="text-[10px] uppercase font-bold tracking-widest px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-dark-800 text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors">Clear</button>
+                    </div>
+                    <!-- Empty State -->
+                    <div id="log-empty" class="absolute inset-0 flex flex-col items-center justify-center opacity-50 z-0">
+                        <span class="text-4xl mb-3">🛡️</span>
+                        <p class="text-sm font-medium text-gray-500">Aucune anomalie détectée</p>
+                    </div>
+                    <div class="flex-1 overflow-y-auto pr-2 relative z-10" id="log-container">
+                        <ul id="event-list" class="space-y-3">
+                            <!-- Logs injected here -->
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sensors Grid -->
+            <div class="pt-4 border-b border-gray-200 dark:border-dark-border pb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Parc de Capteurs</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Supervision détaillée des machines</p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <!-- Search -->
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <input id="sensor-search" type="text" placeholder="Rechercher..." class="pl-9 pr-4 py-2 text-sm bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-border rounded-xl text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 w-44 transition-all">
+                        </div>
+                        <!-- Export CSV -->
+                        <button id="export-csv" title="Exporter les données en CSV" class="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-border rounded-xl hover:border-brand-500/40 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span class="hidden sm:inline">Export CSV</span>
+                        </button>
+                        <!-- Thresholds Settings -->
+                        <button id="open-settings" title="Configurer les seuils d'alerte" class="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-border rounded-xl hover:border-brand-500/40 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            <span class="hidden sm:inline">Seuils</span>
+                        </button>
+                        <!-- Count badge -->
+                        <div class="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-border">
+                            <span class="text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300"><span id="sensor-count-label" class="text-brand-500">0</span> unités</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sensors-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Waiting / No-results states (outside grid so they don't affect column layout) -->
+            <div id="grid-loading" class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-dark-800 flex items-center justify-center text-3xl mb-4 animate-pulse">📡</div>
+                <p class="text-sm font-bold text-gray-500 dark:text-gray-400">En attente des capteurs MQTT…</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Les cartes apparaîtront automatiquement</p>
+            </div>
+            <div id="grid-no-results" class="hidden flex-col items-center justify-center py-16 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-dark-800 flex items-center justify-center text-2xl mb-4">🔍</div>
+                <p class="text-sm font-bold text-gray-500 dark:text-gray-400">Aucun capteur trouvé</p>
+                <p class="text-xs text-gray-400 mt-1">Essayez de modifier la recherche ou le filtre</p>
+            </div>
+
+        </main>
+
+        <!-- Appearance Page -->
+        <div id="page-appearance" class="hidden flex-1 overflow-y-auto p-6 lg:p-10 pb-16">
+            <div class="max-w-2xl mx-auto space-y-8">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Apparence</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Personnalisez l'interface selon vos préférences</p>
+                </div>
+
+                <!-- Dark / Light / System -->
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 shadow-sm">
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white mb-1">Mode d'affichage</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">Choisissez entre le mode clair, sombre ou automatique selon votre système</p>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button data-mode="light" class="mode-btn flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-800 hover:border-gray-300 transition-all">
+                            <span class="text-3xl">☀️</span>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Clair</span>
+                        </button>
+                        <button data-mode="dark" class="mode-btn flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-800 hover:border-gray-300 transition-all">
+                            <span class="text-3xl">🌙</span>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Sombre</span>
+                        </button>
+                        <button data-mode="system" class="mode-btn flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-800 hover:border-gray-300 transition-all">
+                            <span class="text-3xl">💻</span>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Système</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Color accent -->
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 shadow-sm">
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white mb-1">Couleur d'accent</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">Définit la couleur principale de l'interface : navigation, graphiques et badges</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="theme-cards-container"></div>
+                </div>
+
+                <!-- Live preview -->
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 shadow-sm">
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white mb-5">Aperçu en temps réel</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3.5 p-4 rounded-2xl border-2 transition-all theme-preview-active-card">
+                            <svg class="w-5 h-5 flex-shrink-0 theme-preview-text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path></svg>
+                            <span class="text-sm font-bold theme-preview-text-accent">Vue Globale — élément de navigation actif</span>
+                            <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md theme-preview-badge">12</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Compteur d'unités :</span>
+                            <span class="text-2xl font-extrabold theme-preview-text-accent">18</span>
+                            <span class="text-xs text-gray-400">unités</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 rounded-xl text-white text-sm font-bold theme-preview-btn">Sauvegarder</button>
+                            <button class="px-4 py-2 rounded-xl text-sm font-bold border-2 theme-preview-outline-btn">Annuler</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance & Analytics Page -->
+        <!-- Cartographie Page -->
+        <div id="page-carte" class="hidden flex-1 overflow-y-auto p-6 lg:p-10 pb-16">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-8 flex items-end justify-between">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">Cartographie Usine</h2>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">Vue plan en temps r&eacute;el — couleur = &eacute;tat le plus critique des capteurs</p>
+                    </div>
+                    <button onclick="renderCartePage()" class="px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold transition-colors">Rafra&icirc;chir</button>
+                </div>
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 shadow-sm mb-6">
+                    <div class="flex flex-wrap gap-4 mb-4 items-center">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span><span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Normal</span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span><span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Avertissement</span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]"></span><span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Critique</span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></span><span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Inactif</span></div>
+                        <span class="ml-auto text-[11px] text-gray-400 font-medium hidden lg:block">&bull; Survoler une machine pour les d&eacute;tails</span>
+                    </div>
+                    <div id="carte-svg-container" class="w-full overflow-auto rounded-2xl bg-gray-50 dark:bg-dark-800/50 min-h-[320px] flex items-center justify-center">
+                        <p class="text-gray-400 text-sm">En attente de donn&eacute;es MQTT&hellip;</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="carte-zone-summary"></div>
+            </div>
+        </div>
+
+        <!-- Comparaison Page -->
+        <div id="page-compare" class="hidden flex-1 overflow-y-auto p-6 lg:p-10 pb-16">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">Comparaison Multi-Machines</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">S&eacute;lectionner 2 &agrave; 4 machines pour comparer leurs capteurs en parall&egrave;le</p>
+                </div>
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl p-6 shadow-sm mb-6">
+                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">S&eacute;lectionner les machines</p>
+                    <div id="compare-selector" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div id="compare-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <p class="col-span-2 text-center text-gray-400 text-sm py-12">S&eacute;lectionnez au moins 2 machines pour afficher la comparaison</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertes Page -->
+        <div id="page-alerts" class="hidden flex-1 overflow-y-auto p-6 lg:p-10 pb-16">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-8 flex items-end justify-between flex-wrap gap-4">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">Historique des Alertes</h2>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">Toutes les alertes de la session avec acquittement</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="acknowledgeAllAlerts()" class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors">Tout acquitter</button>
+                        <button onclick="clearAckedAlerts()" class="px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-sm font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors">Effacer acquitt&eacute;es</button>
+                    </div>
+                </div>
+                <!-- Filters -->
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-widest text-gray-400">Filtres</span>
+                    <select id="alert-filter-zone" onchange="renderAlertsPage()" class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-800 text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="all">Toutes zones</option>
+                        <option value="salle_serveur">Salle Serveur</option>
+                        <option value="atelier">Atelier</option>
+                        <option value="local_elec">Local &Eacute;lec.</option>
+                    </select>
+                    <select id="alert-filter-level" onchange="renderAlertsPage()" class="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-800 text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="all">Tous niveaux</option>
+                        <option value="crit">Critique</option>
+                        <option value="warn">Avertissement</option>
+                    </select>
+                    <label class="flex items-center gap-2 cursor-pointer ml-auto">
+                        <input type="checkbox" id="alert-filter-unacked" onchange="renderAlertsPage()" class="w-4 h-4 rounded accent-brand-500">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Non acquitt&eacute;es seulement</span>
+                    </label>
+                    <span id="alerts-count-label" class="text-xs font-bold text-gray-400">0 alerte(s)</span>
+                </div>
+                <!-- Alert list -->
+                <div id="alerts-list" class="flex flex-col gap-2">
+                    <p class="text-center text-gray-400 text-sm py-12">Aucune alerte enregistr&eacute;e — en attente de donn&eacute;es MQTT&hellip;</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-maintenance" class="hidden flex-1 overflow-y-auto p-6 lg:p-10 pb-16">
+            <div class="max-w-6xl mx-auto space-y-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Maintenance Prédictive</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Santé des machines · Détection IA · Planification</p>
+                    </div>
+                    <button onclick="renderMaintenancePage()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-800 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Actualiser
+                    </button>
+                </div>
+                <!-- Summary KPIs -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="maint-kpis"></div>
+                <!-- Machine health table -->
+                <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 dark:border-dark-border flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">État des Machines</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Score de santé calculé en temps réel</p>
+                        </div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20">🤖 IA Active</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm" id="maint-table">
+                            <thead class="bg-gray-50 dark:bg-dark-800">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-500">Machine</th>
+                                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-500">Zone</th>
+                                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Score Santé</th>
+                                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Anomalie IA</th>
+                                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Alertes</th>
+                                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-500">Prochaine maintenance</th>
+                                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maint-tbody" class="divide-y divide-gray-100 dark:divide-dark-border">
+                                <tr><td colspan="7" class="px-6 py-12 text-center text-gray-400 text-sm">Aucune donnée — en attente MQTT…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Zone heatmap summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="maint-zone-cards"></div>
+            </div>
+        </div>
+
+        <!-- 3D Factory View -->
+        <div id="page-3d" class="hidden flex-1 relative overflow-hidden">
+            <canvas id="canvas-3d" class="absolute inset-0 w-full h-full block"></canvas>
+
+            <!-- HTML labels overlay -->
+            <div id="labels-3d" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+            <!-- Sensor tooltip on hover -->
+            <div id="tooltip-3d" class="hidden absolute z-30 pointer-events-none bg-white/95 dark:bg-dark-card/95 backdrop-blur-lg border border-gray-200 dark:border-dark-border rounded-2xl shadow-2xl min-w-[210px] max-w-[260px] overflow-hidden">
+                <div id="tooltip-3d-header" class="px-4 pt-4 pb-2.5 border-b border-gray-100 dark:border-dark-border">
+                    <p id="tooltip-3d-title" class="font-extrabold text-sm text-gray-900 dark:text-white tracking-tight"></p>
+                    <p id="tooltip-3d-zone" class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mt-0.5"></p>
+                </div>
+                <div id="tooltip-3d-sensors" class="p-4 space-y-2"></div>
+                <div id="tooltip-3d-footer" class="px-4 pb-3 pt-1 border-t border-gray-100 dark:border-dark-border">
+                    <div class="flex items-center gap-1.5">
+                        <span id="tooltip-3d-status-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span id="tooltip-3d-status-text" class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Normal</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera controls -->
+            <div class="absolute top-5 right-5 z-20 flex flex-col gap-2">
+                <button id="btn-3d-reset" title="Vue par défaut" class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/90 dark:bg-dark-card/90 border border-gray-200 dark:border-dark-border shadow-sm text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                </button>
+                <button id="btn-3d-top" title="Vue de dessus" class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/90 dark:bg-dark-card/90 border border-gray-200 dark:border-dark-border shadow-sm text-[10px] font-bold text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors backdrop-blur-sm">
+                    TOP
+                </button>
+                <button id="btn-3d-zone-ss" title="Salle Serveur" class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/90 dark:bg-dark-card/90 border border-gray-200 dark:border-dark-border shadow-sm text-[10px] font-bold transition-colors backdrop-blur-sm" style="color:#3b82f6">
+                    SS
+                </button>
+                <button id="btn-3d-zone-at" title="Atelier" class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/90 dark:bg-dark-card/90 border border-gray-200 dark:border-dark-border shadow-sm text-[10px] font-bold transition-colors backdrop-blur-sm" style="color:#8b5cf6">
+                    AT
+                </button>
+                <button id="btn-3d-zone-le" title="Local Électrique" class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/90 dark:bg-dark-card/90 border border-gray-200 dark:border-dark-border shadow-sm text-[10px] font-bold transition-colors backdrop-blur-sm" style="color:#f59e0b">
+                    LE
+                </button>
+            </div>
+
+            <!-- Legend -->
+            <div class="absolute bottom-5 left-5 z-20 bg-white/90 dark:bg-dark-card/90 backdrop-blur-sm border border-gray-200 dark:border-dark-border rounded-2xl p-4 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">État des capteurs</p>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span><span class="text-xs font-medium text-gray-700 dark:text-gray-300">Normal</span></div>
+                    <div class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span><span class="text-xs font-medium text-gray-700 dark:text-gray-300">Avertissement</span></div>
+                    <div class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]"></span><span class="text-xs font-medium text-gray-700 dark:text-gray-300">Critique</span></div>
+                    <div class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></span><span class="text-xs font-medium text-gray-700 dark:text-gray-300">Inactif</span></div>
+                </div>
+            </div>
+
+            <!-- Stats overlay (bottom-right) -->
+            <div id="stats-3d" class="absolute bottom-5 right-5 z-20 bg-white/90 dark:bg-dark-card/90 backdrop-blur-sm border border-gray-200 dark:border-dark-border rounded-2xl p-4 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">Résumé usine</p>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div><p id="stat-3d-ok" class="text-xl font-extrabold text-emerald-500">0</p><p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">OK</p></div>
+                    <div><p id="stat-3d-warn" class="text-xl font-extrabold text-amber-500">0</p><p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Warn</p></div>
+                    <div><p id="stat-3d-crit" class="text-xl font-extrabold text-rose-500">0</p><p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Crit</p></div>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="absolute top-5 left-5 z-20">
+                <h2 class="text-xl font-extrabold text-gray-900 dark:text-white drop-shadow-sm">Vue 3D Usine</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Glisser pour pivoter · Molette pour zoomer · Clic sur zone pour focus</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2.5 pointer-events-none w-80"></div>
+
+    <!-- Thresholds Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-3xl shadow-2xl w-full max-w-lg">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 dark:border-dark-border">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">Seuils d'alerte</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Personnaliser les limites par type de capteur</p>
+                </div>
+                <button id="close-settings" class="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-800 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto" id="thresholds-list">
+                <!-- Populated by JS -->
+            </div>
+            <div class="flex gap-3 p-6 pt-0">
+                <button id="save-settings" class="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm transition-colors">Sauvegarder</button>
+                <button id="reset-settings" class="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-dark-800 text-gray-600 dark:text-gray-300 font-bold text-sm hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors">Réinitialiser</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding" class="fixed inset-0 z-[300] hidden flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+        <div class="bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-gradient-to-r from-brand-500 to-violet-500 p-8 text-white">
+                <h2 class="text-2xl font-extrabold mb-1">Bienvenue sur IndustriTech</h2>
+                <p class="text-white/80 text-sm font-medium">Plateforme de supervision industrielle IoT en temps r&eacute;el</p>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-xl flex-shrink-0">📡</div>
+                    <div><p class="font-bold text-sm text-gray-900 dark:text-white">Donn&eacute;es temps r&eacute;el</p><p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">43 capteurs sur 14 machines via MQTT — mise &agrave; jour toutes les 3&nbsp;secondes</p></div>
+                </div>
+                <div class="flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-2xl bg-violet-50 dark:bg-violet-500/20 flex items-center justify-center text-xl flex-shrink-0">🤖</div>
+                    <div><p class="font-bold text-sm text-gray-900 dark:text-white">Intelligence artificielle</p><p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">D&eacute;tection d'anomalies par Z-score et score de sant&eacute; pr&eacute;dictif par machine</p></div>
+                </div>
+                <div class="flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/20 flex items-center justify-center text-xl flex-shrink-0">🗺️</div>
+                    <div><p class="font-bold text-sm text-gray-900 dark:text-white">Vue cartographique &amp; 3D</p><p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Plan usine interactif en SVG et mod&egrave;le 3D de l'usine avec heatmap thermique</p></div>
+                </div>
+                <div class="flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/20 flex items-center justify-center text-xl flex-shrink-0">📊</div>
+                    <div><p class="font-bold text-sm text-gray-900 dark:text-white">Rapports &amp; exports</p><p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Export CSV, rapport PDF, suivi &eacute;nergie &amp; CO&sup2;, mode kiosque pour d&eacute;mo</p></div>
+                </div>
+            </div>
+            <div class="p-6 pt-0 flex gap-3">
+                <button id="onboarding-start" class="flex-1 py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm transition-colors">Commencer &rarr;</button>
+                <button id="onboarding-never" class="px-4 py-3 rounded-2xl bg-gray-100 dark:bg-dark-800 text-gray-600 dark:text-gray-300 font-bold text-sm hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors">Ne plus afficher</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-enter { animation: pageIn 0.25s ease forwards; }
+        @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .kiosk-active { outline: 3px solid #8b5cf6; }
+        #kiosk-btn.active-kiosk { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="/js/app.js"></script>
+<!-- ── Demo failure modal ──────────────────────────────────────── -->
+<div id="demo-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-2xl w-[21rem] border border-gray-100 dark:border-dark-border">
+    <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-1">🎭 Scénario de Panne</h3>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Déclenche une dégradation progressive sur 30 secondes (vibration + température).</p>
+    <div class="mb-4">
+      <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Machine cible</label>
+      <select id="demo-machine" class="w-full rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-800 text-gray-900 dark:text-white px-3 py-2 text-sm">
+        <option value="presse">Atelier — Presse</option>
+        <option value="robot">Atelier — Robot</option>
+        <option value="compresseur">Atelier — Compresseur</option>
+        <option value="tour_cnc">Atelier — Tour CNC</option>
+        <option value="onduleur">Salle Serveur — Onduleur</option>
+        <option value="armoire_1">Local Élec — Armoire 1</option>
+      </select>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="document.getElementById('demo-modal').classList.add('hidden')" class="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-dark-border text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">Annuler</button>
+      <button onclick="const m=document.getElementById('demo-machine').value; document.getElementById('demo-modal').classList.add('hidden'); triggerDemoFailure(m);" class="flex-1 px-4 py-2 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors">🚀 Lancer</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

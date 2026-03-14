@@ -1,0 +1,516 @@
+[
+  {
+    "id": "tab-ingestion",
+    "type": "tab",
+    "label": "📥 Ingestion MQTT → InfluxDB",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "tab-automation",
+    "type": "tab",
+    "label": "⚙️ Automatisation & Alertes",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "tab-simulation",
+    "type": "tab",
+    "label": "🔬 Simulation Node-RED",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "mqtt-broker-config",
+    "type": "mqtt-broker",
+    "name": "Mosquitto Local",
+    "broker": "mosquitto",
+    "port": "1883",
+    "clientid": "nodered-main",
+    "usetls": false,
+    "autoConnect": true
+  },
+  {
+    "id": "influxdb-config",
+    "type": "influxdb",
+    "hostname": "influxdb",
+    "port": "8086",
+    "protocol": "http",
+    "database": "iot_data",
+    "name": "InfluxDB IoT",
+    "usetls": false,
+    "influxdbVersion": "2.0",
+    "url": "http://influxdb:8086",
+    "rejectUnauthorized": false
+  },
+  {
+    "id": "n-mqtt-in-all",
+    "type": "mqtt in",
+    "z": "tab-ingestion",
+    "name": "MQTT factory/#",
+    "topic": "factory/#",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt-broker-config",
+    "wires": [
+      [
+        "n-fn-http-write",
+        "n-debug-in"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-format",
+    "type": "function",
+    "z": "tab-ingestion",
+    "name": "Format InfluxDB",
+    "func": "var p=msg.payload;\nif(!p||p.capteur===undefined||p.valeur===undefined)return null;\nmsg.payload=[[{measurement:'machine_data',fields:{valeur:parseFloat(p.valeur)||0,seuil:parseFloat(p.seuil)||0,derive:parseFloat(p.derive)||0,anomalie:p.anomalie?1:0},tags:{zone:String(p.zone||'unknown'),machine:String(p.machine||'unknown'),capteur:String(p.capteur||'unknown'),unite:String(p.unite||'')},timestamp:new Date(p.timestamp||Date.now()).getTime()*1000000}]];\nmsg.org='industritech';\nmsg.bucket='iot_data';\nmsg.precision='ns';\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "n-influxdb-out",
+    "type": "debug",
+    "z": "tab-ingestion",
+    "influxdb": "influxdb-config",
+    "name": "disabled-influxdb-out",
+    "measurement": "machine_data",
+    "precision": "ns",
+    "retentionPolicy": "",
+    "database": "iot_data",
+    "wires": [],
+    "active": false
+  },
+  {
+    "id": "n-debug-in",
+    "type": "debug",
+    "z": "tab-ingestion",
+    "name": "Debug",
+    "active": false,
+    "tosidebar": true,
+    "complete": "true",
+    "wires": []
+  },
+  {
+    "id": "n-mqtt-auto",
+    "type": "mqtt in",
+    "z": "tab-automation",
+    "name": "MQTT factory/#",
+    "topic": "factory/#",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt-broker-config",
+    "wires": [
+      [
+        "n-sw-vib",
+        "n-sw-temp",
+        "n-sw-lux"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-vib",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Vibration?",
+    "property": "payload.capteur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "vibration",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-sw-vib-seuil"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-vib-seuil",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Seuils vibration",
+    "property": "payload.valeur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "gt",
+        "v": "8.0",
+        "vt": "num"
+      },
+      {
+        "t": "gt",
+        "v": "5.0",
+        "vt": "num"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 2,
+    "wires": [
+      [
+        "n-fn-stop"
+      ],
+      [
+        "n-fn-alert-vib"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-stop",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "R3 – Arrêt auto",
+    "func": "var p=msg.payload;\nvar s={topic:'factory/'+p.zone+'/'+p.machine+'/commande',payload:JSON.stringify({commande:'STOP',raison:'Vibration critique: '+p.valeur+' mm/s',timestamp:new Date().toISOString()})};\nnode.warn('🚨 ARRÊT AUTO: '+p.machine+' | vib='+p.valeur+' mm/s');\nreturn[s,{payload:'🚨 ARRÊT AUTO\\nMachine: '+p.machine+'\\nVibration: '+p.valeur+' mm/s (seuil 8.0)\\n'+p.timestamp}];",
+    "outputs": 2,
+    "wires": [
+      [
+        "n-mqtt-out-cmd"
+      ],
+      [
+        "n-debug-alert"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-alert-vib",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "R1 – Alerte vibration",
+    "func": "var p=msg.payload;\nmsg.payload='⚠️ ALERTE Vibration\\nMachine: '+p.machine+' | Zone: '+p.zone+'\\nValeur: '+p.valeur+' mm/s (seuil 5.0)\\n'+p.timestamp;\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-debug-alert",
+        "n-fn-log-alert"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-temp",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Température?",
+    "property": "payload.capteur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "temperature",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-sw-temp-seuil"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-temp-seuil",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Seuils temp",
+    "property": "payload.valeur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "gt",
+        "v": "80",
+        "vt": "num"
+      },
+      {
+        "t": "gt",
+        "v": "40",
+        "vt": "num"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 2,
+    "wires": [
+      [
+        "n-fn-temp-crit"
+      ],
+      [
+        "n-fn-temp-warn"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-temp-crit",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "R2 – Temp critique",
+    "func": "var p=msg.payload;\nmsg.payload='🔥 TEMPÉRATURE CRITIQUE\\nMachine: '+p.machine+' | Zone: '+p.zone+'\\nValeur: '+p.valeur+'°C (seuil 80)\\n'+p.timestamp;\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-debug-alert",
+        "n-fn-log-alert"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-temp-warn",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "R2b – Temp warning",
+    "func": "var p=msg.payload;\nmsg.payload='⚡ Avert. Temp\\nMachine: '+p.machine+' | Zone: '+p.zone+'\\nValeur: '+p.valeur+'°C\\n'+p.timestamp;\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-debug-alert"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-lux",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Luminosité?",
+    "property": "payload.capteur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "luminosite",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-sw-lux-seuil"
+      ]
+    ]
+  },
+  {
+    "id": "n-sw-lux-seuil",
+    "type": "switch",
+    "z": "tab-automation",
+    "name": "Lux < 50?",
+    "property": "payload.valeur",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "lt",
+        "v": "50",
+        "vt": "num"
+      }
+    ],
+    "checkall": "false",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-fn-alert-lux"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-alert-lux",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "R5 – Luminosité anormale",
+    "func": "var p=msg.payload;\nmsg.payload='💡 ANOMALIE Luminosité\\nLocal: '+p.zone+'\\nValeur: '+p.valeur+' lux (seuil < 50)\\n'+p.timestamp;\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-debug-alert",
+        "n-fn-log-alert"
+      ]
+    ]
+  },
+  {
+    "id": "n-mqtt-out-cmd",
+    "type": "mqtt out",
+    "z": "tab-automation",
+    "name": "→ Commande STOP",
+    "topic": "",
+    "qos": "2",
+    "retain": "",
+    "broker": "mqtt-broker-config",
+    "wires": []
+  },
+  {
+    "id": "n-debug-alert",
+    "type": "debug",
+    "z": "tab-automation",
+    "name": "🔔 Alertes",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "wires": []
+  },
+  {
+    "id": "n-fn-log-alert",
+    "type": "function",
+    "z": "tab-automation",
+    "name": "Logger alerte InfluxDB",
+    "func": "var message=msg.payload||'';\nmsg.payload=[[{measurement:'alertes',fields:{message:message.substring(0,255)},tags:{type:'alerte'},timestamp:Date.now()*1000000}]];\nmsg.org='industritech';\nmsg.bucket='iot_data';\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-influxdb-out-alerts"
+      ]
+    ]
+  },
+  {
+    "id": "n-influxdb-out-alerts",
+    "type": "debug",
+    "z": "tab-automation",
+    "influxdb": "influxdb-config",
+    "name": "disabled-influxdb-out",
+    "measurement": "alertes",
+    "precision": "ns",
+    "database": "iot_data",
+    "wires": [],
+    "active": false,
+    "headers": [
+      {
+        "keyType": "str",
+        "keyValue": "Authorization",
+        "valueType": "str",
+        "valueValue": "Token mytoken123superlong"
+      },
+      {
+        "keyType": "str",
+        "keyValue": "Content-Type",
+        "valueType": "str",
+        "valueValue": "text/plain; charset=utf-8"
+      }
+    ]
+  },
+  {
+    "id": "n-inj-presse-vib",
+    "type": "inject",
+    "z": "tab-simulation",
+    "name": "⏱ Presse vibration (2s)",
+    "repeat": "2",
+    "once": true,
+    "onceDelay": "1",
+    "wires": [
+      [
+        "n-fn-sim-pv"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-sim-pv",
+    "type": "function",
+    "z": "tab-simulation",
+    "name": "Sim vibration presse",
+    "func": "var trend=context.get('trend')||0;\nif(Math.random()<0.01){trend+=0.05;context.set('trend',trend);}\nvar t=Date.now()/1000;\nvar value=2.0+trend+Math.sin(t*2.5)*0.3+(Math.random()-0.5)*0.3;\nvalue=Math.round(value*1000)/1000;\nmsg.topic='factory/atelier/presse/vibration';\nmsg.payload=JSON.stringify({zone:'atelier',machine:'presse',capteur:'vibration',valeur:value,unite:'mm/s',seuil:5.0,anomalie:value>5.0,derive:Math.round(trend*1000)/1000,timestamp:new Date().toISOString()});\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-mqtt-out-sim"
+      ]
+    ]
+  },
+  {
+    "id": "n-inj-salle-temp",
+    "type": "inject",
+    "z": "tab-simulation",
+    "name": "⏱ Salle serveur temp (5s)",
+    "repeat": "5",
+    "once": true,
+    "onceDelay": "1",
+    "wires": [
+      [
+        "n-fn-sim-st"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-sim-st",
+    "type": "function",
+    "z": "tab-simulation",
+    "name": "Sim temp salle serveur",
+    "func": "var trend=context.get('trend')||0;\nif(Math.random()<0.015){trend+=0.03;context.set('trend',trend);}\nvar t=Date.now()/1000;\nvar value=22.0+trend*1.5+Math.sin(t*0.1)*1.5+(Math.random()-0.5)*0.5;\nvalue=Math.round(value*100)/100;\nmsg.topic='factory/salle_serveur/rack_principal/temperature';\nmsg.payload=JSON.stringify({zone:'salle_serveur',machine:'rack_principal',capteur:'temperature',valeur:value,unite:'°C',seuil:28.0,anomalie:value>28.0,derive:Math.round(trend*1000)/1000,timestamp:new Date().toISOString()});\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-mqtt-out-sim"
+      ]
+    ]
+  },
+  {
+    "id": "n-inj-local-lux",
+    "type": "inject",
+    "z": "tab-simulation",
+    "name": "⏱ Local élec luminosité (10s)",
+    "repeat": "10",
+    "once": true,
+    "onceDelay": "2",
+    "wires": [
+      [
+        "n-fn-sim-ll"
+      ]
+    ]
+  },
+  {
+    "id": "n-fn-sim-ll",
+    "type": "function",
+    "z": "tab-simulation",
+    "name": "Sim luminosité local élec",
+    "func": "var trend=context.get('trend')||0;\nif(Math.random()<0.02){trend+=0.5;context.set('trend',trend);}\nvar t=Date.now()/1000;\nvar value=Math.max(0,200.0-trend*5+Math.cos(t*0.2)*20+(Math.random()-0.5)*10);\nvalue=Math.round(value*10)/10;\nmsg.topic='factory/local_elec/armoire_1/luminosite';\nmsg.payload=JSON.stringify({zone:'local_elec',machine:'armoire_1',capteur:'luminosite',valeur:value,unite:'lux',seuil:50.0,anomalie:value<50.0,derive:Math.round(trend*100)/100,timestamp:new Date().toISOString()});\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-mqtt-out-sim"
+      ]
+    ]
+  },
+  {
+    "id": "n-mqtt-out-sim",
+    "type": "mqtt out",
+    "z": "tab-simulation",
+    "name": "→ MQTT",
+    "topic": "",
+    "qos": "1",
+    "broker": "mqtt-broker-config",
+    "wires": []
+  },
+  {
+    "id": "n-fn-http-write",
+    "type": "function",
+    "z": "tab-ingestion",
+    "name": "Format Line Protocol",
+    "func": "var p = msg.payload;\nif(!p || p.capteur === undefined || p.valeur === undefined) return null;\nvar ts = new Date(p.timestamp || Date.now()).getTime() * 1000000;\nfunction encodeTag(s){ return String(s).replace(/ /g,'\\\\ ').replace(/,/g,'\\\\,').replace(/=/g,'\\\\='); }\nvar tags = 'machine_data,zone=' + encodeTag(p.zone||'?') + ',machine=' + encodeTag(p.machine||'?') + ',capteur=' + encodeTag(p.capteur||'?') + ',unite=' + encodeTag(p.unite||'none');\nvar fields = 'valeur=' + parseFloat(p.valeur) + ',seuil=' + parseFloat(p.seuil||0) + ',derive=' + parseFloat(p.derive||0) + ',anomalie=' + (p.anomalie ? '1i' : '0i');\nmsg.payload = tags + ' ' + fields + ' ' + ts;\nmsg.headers = {'Content-Type': 'text/plain; charset=utf-8', 'Authorization': 'Token mytoken123superlong'};\nreturn msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "n-http-influx-write"
+      ]
+    ]
+  },
+  {
+    "id": "n-http-influx-write",
+    "type": "http request",
+    "z": "tab-ingestion",
+    "name": "→ InfluxDB HTTP",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://influxdb:8086/api/v2/write?org=industritech&bucket=iot_data&precision=ns",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "wires": [
+      [
+        "n-debug-in"
+      ]
+    ]
+  }
+]

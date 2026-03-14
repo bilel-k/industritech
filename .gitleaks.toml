@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Gitleaks — configuration personnalisée
+# Doc : https://github.com/gitleaks/gitleaks
+# Test : gitleaks detect --config .gitleaks.toml --verbose
+# ─────────────────────────────────────────────────────────────────────────────
+title = "IndustriTech IoT — Gitleaks Config"
+
+[extend]
+# Hérite des règles upstream par défaut
+useDefault = true
+
+# ── Règles personnalisées IoT ─────────────────────────────────────────────────
+[[rules]]
+id          = "influxdb-token"
+description = "Jeton InfluxDB en clair"
+regex       = '''(?i)(influx[_-]?token|influxdb[_-]?token)\s*[=:]\s*["\']?([a-zA-Z0-9+/]{32,})["\']?'''
+secretGroup = 2
+severity    = "CRITICAL"
+tags        = ["influxdb", "token", "iot"]
+
+[[rules]]
+id          = "mqtt-password"
+description = "Mot de passe MQTT en clair dans le code"
+regex       = '''(?i)(mqtt[_-]?pass(word)?|mosquitto[_-]?pass)\s*[=:]\s*["\']([^"'\s]{6,})["\']'''
+secretGroup = 3
+severity    = "HIGH"
+tags        = ["mqtt", "mosquitto", "password"]
+
+[[rules]]
+id          = "nodered-secret"
+description = "Secret Node-RED credential en clair"
+regex       = '''(?i)(credential[_-]?secret|nodered[_-]?secret)\s*[=:]\s*["\']([^"'\s]{8,})["\']'''
+secretGroup = 2
+severity    = "HIGH"
+tags        = ["nodered", "secret"]
+
+# ── Fichiers toujours autorisés (false-positives connus) ─────────────────────
+[allowlist]
+description = "Fichiers légitimes avec des valeurs ressemblant à des secrets"
+paths = [
+  '''^\.env\.example$''',           # valeurs placeholder uniquement
+  '''^documentation\.typ$''',       # doc technique avec exemples
+  '''^documentation\.pdf$''',       # PDF généré
+  '''Makefile''',                    # commandes curl avec token exemple
+  '''tests/integration_test\.sh'''  # tests avec credentials de test
+]
+
+# Patterns globaux exclus
+regexes = [
+  '''mytoken123superlong''',         # token exemple dans .env.example / docs
+  '''admin123!?''',                  # mot de passe exemple
+  '''iotsecret2026''',               # secret Node-RED exemple
+]

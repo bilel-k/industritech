@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Hadolint — configuration lint Dockerfiles
+# Doc : https://github.com/hadolint/hadolint
+# Test : hadolint --config .hadolint.yaml webapp/Dockerfile
+# ─────────────────────────────────────────────────────────────────────────────
+failure-threshold: warning
+
+ignore:
+  # DL3018 : on veut pouvoir apk add sans --no-cache dans certains cas
+  # (non applicable : nos Dockerfiles n'utilisent pas apk add)
+  # DL3008 : apt-get sans version pin (acceptable pour images slim de build)
+  - DL3008
+  # SC2046 : double quote prevention dans shell — géré dans nos scripts
+  - SC2046
+
+trustedRegistries:
+  - docker.io
+  - node
+  - python
+  - eclipse-mosquitto
+  - influxdb
+  - grafana
+
+# Niveau des messages
+format: tty

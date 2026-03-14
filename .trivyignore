@@ -1,0 +1,12 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Trivy — liste des CVE à ignorer (faux positifs ou non applicables)
+# Doc : https://aquasecurity.github.io/trivy/
+# Format : une CVE par ligne, commentaire possible avec #
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Règle : n'ignorer que les CVE dont l'analyse prouve qu'elles ne sont
+# pas exploitables dans notre contexte (réseau privé Docker, pas de shell distant).
+# Toute CVE CRITICAL reste bloquante même si listée ici.
+
+# ── Exemple de format ──────────────────────────────────────────────────────────
+# CVE-2023-XXXXX  # Justification : non applicable, feature non utilisée
