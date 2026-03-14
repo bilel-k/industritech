@@ -5,7 +5,11 @@ Simule les capteurs IoT des 3 zones (salle serveur, atelier, local électrique)
 et publie les données via MQTT avec dérive progressive.
 """
 
-import os, time, json, random, math
+import os
+import time
+import json
+import random
+import math
 import paho.mqtt.client as mqtt
 
 # ─── Config depuis env ──────────────────────────────────────────────────────
@@ -13,8 +17,8 @@ MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_USER = os.getenv("MQTT_USER", "sensor")
 MQTT_PASS = os.getenv("MQTT_PASS", "sensor123")
-MQTT_TLS  = os.getenv("MQTT_TLS", "false").lower() == "true"
-CA_CERT   = os.getenv("CA_CERT", "/certs/ca.crt")
+MQTT_TLS = os.getenv("MQTT_TLS", "false").lower() == "true"
+CA_CERT = os.getenv("CA_CERT", "/certs/ca.crt")
 
 # ─── Capteurs déclarés ──────────────────────────────────────────────────────
 # Format: (zone, machine, capteur, unité, valeur_base, seuil_alerte, intervalle_sec)
@@ -51,7 +55,7 @@ SENSORS = [
     ("atelier",       "tour_cnc",         "vibration",    "mm/s",   1.5,   6.0,  2),
     ("atelier",       "tour_cnc",         "temperature",  "°C",    32.0,  45.0,  3),
     ("atelier",       "tour_cnc",         "courant",      "A",     10.0,  18.0,  3),
-    ("atelier",       "tour_cnc",         "niveau_sonore","dB",    72.0,  90.0,  3),
+    ("atelier",       "tour_cnc",         "niveau_sonore", "dB",    72.0,  90.0,  3),
     # Compresseur
     ("atelier",       "compresseur",      "pression",     "bar",    8.0,  12.0,  4),
     ("atelier",       "compresseur",      "temperature",  "°C",    35.0,  50.0,  4),
@@ -60,7 +64,7 @@ SENSORS = [
     # Poste de soudure
     ("atelier",       "poste_soudure",    "courant",      "A",    120.0, 200.0,  3),
     ("atelier",       "poste_soudure",    "temperature",  "°C",    40.0,  55.0,  3),
-    ("atelier",       "poste_soudure",    "luminosite",   "lux",  800.0,1500.0,  5),
+    ("atelier",       "poste_soudure",    "luminosite",   "lux",  800.0, 1500.0,  5),
 
     # ═══ Local électrique ═══
     # Armoire 1
@@ -75,17 +79,18 @@ SENSORS = [
     ("local_elec",    "transformateur",   "temperature",  "°C",    40.0,  65.0,  6),
     ("local_elec",    "transformateur",   "puissance",    "kW",    45.0,  80.0,  6),
     ("local_elec",    "transformateur",   "vibration",    "mm/s",   0.5,   2.0,  6),
-    ("local_elec",    "transformateur",   "niveau_sonore","dB",    55.0,  75.0,  8),
+    ("local_elec",    "transformateur",   "niveau_sonore", "dB",    55.0,  75.0,  8),
     # Groupe électrogène
-    ("local_elec",    "groupe_electrogene","temperature",  "°C",   30.0,  50.0,  8),
-    ("local_elec",    "groupe_electrogene","vibration",    "mm/s",  1.8,   5.0,  8),
-    ("local_elec",    "groupe_electrogene","debit",        "L/min",  2.0,   0.5,  8),
-    ("local_elec",    "groupe_electrogene","niveau_sonore","dB",    65.0,  85.0,  8),
+    ("local_elec",    "groupe_electrogene", "temperature",  "°C",   30.0,  50.0,  8),
+    ("local_elec",    "groupe_electrogene", "vibration",    "mm/s",  1.8,   5.0,  8),
+    ("local_elec",    "groupe_electrogene", "debit",        "L/min", 2.0,   0.5,  8),
+    ("local_elec",    "groupe_electrogene", "niveau_sonore", "dB",   65.0,  85.0,  8),
 ]
 
 # ─── État des dérives ───────────────────────────────────────────────────────
 drifts = {f"{z}/{m}/{c}": 0.0 for z, m, c, *_ in SENSORS}
-last_sent = {f"{z}/{m}/{c}": 0  for z, m, c, *_ in SENSORS}
+last_sent = {f"{z}/{m}/{c}": 0 for z, m, c, *_ in SENSORS}
+
 
 # ─── Connexion MQTT ─────────────────────────────────────────────────────────
 def connect_mqtt() -> mqtt.Client:
@@ -108,8 +113,9 @@ def connect_mqtt() -> mqtt.Client:
             time.sleep(5)
     client.loop_start()
     return client
-
 # ─── Génération des valeurs ─────────────────────────────────────────────────
+
+
 def generate_value(zone, machine, capteur, base, seuil, t):
     key = f"{zone}/{machine}/{capteur}"
     # Dérive progressive aléatoire (simule usure)
@@ -148,8 +154,9 @@ def generate_value(zone, machine, capteur, base, seuil, t):
         (value < seuil and capteur in ("luminosite", "vitesse", "debit"))
     )
     return round(value, 3), anomaly
-
 # ─── Boucle principale ──────────────────────────────────────────────────────
+
+
 def main():
     print(f"[SIM] Démarrage simulation → {MQTT_HOST}:{MQTT_PORT}")
     client = connect_mqtt()
@@ -157,7 +164,7 @@ def main():
 
     while True:
         now = time.time()
-        t   = now - t_start
+        t = now - t_start
 
         for (zone, machine, capteur, unit, base, seuil, interval) in SENSORS:
             key = f"{zone}/{machine}/{capteur}"
@@ -184,6 +191,7 @@ def main():
             print(f"[{status}] {topic} = {value} {unit}")
 
         time.sleep(0.5)
+
 
 if __name__ == "__main__":
     main()
