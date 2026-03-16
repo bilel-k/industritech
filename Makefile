@@ -1,5 +1,5 @@
-.PHONY: help certs start stop restart logs status clean test webapp logs-webapp open \
-        audit lint sast scan-images sbom secrets-scan policy devsecops pre-commit-install
+.PHONY: help certs start stop restart logs status clean test demo webapp logs-webapp open \
+	audit lint sast scan-images sbom secrets-scan policy devsecops pre-commit-install
 
 # ─── Variables ──────────────────────────────────────────────────────────────
 COMPOSE = docker compose
@@ -98,27 +98,35 @@ clean-all: clean ## Supprime aussi les certificats
 test: ## Lance les tests d'intégration
 	@bash tests/integration_test.sh
 
+demo: ## Lance une démo complète (start + checks santé)
+	@$(MAKE) start
+	@echo ""
+	@echo "⏳ Vérification des services (mode démo)…"
+	@bash tests/integration_test.sh
+	@echo ""
+	@echo "✅ Démo prête. Ouvrir: http://localhost:8080"
+
 # ─── Sécurité ────────────────────────────────────────────────────────────────
 env-setup: ## Copie .env.example → .env (à faire une seule fois)
-@if [ -f .env ]; then echo "⚠️  .env existe déjà, non écrasé."; else cp .env.example .env && echo "✅ .env créé — éditez-le avant de lancer make start"; fi
+	@if [ -f .env ]; then echo "⚠️  .env existe déjà, non écrasé."; else cp .env.example .env && echo "✅ .env créé — éditez-le avant de lancer make start"; fi
 
 security-test: ## Valide les protections de sécurité (MQTT auth, headers, rate limit)
-@echo "=== [1] MQTT anonyme (doit être refusé) ==="
-@docker run --rm --network iot-network eclipse-mosquitto:2.0 \
-  mosquitto_sub -h mosquitto -t "factory/#" -C 1 -W 3 2>&1 || echo "✅ Refusé"
-@echo ""
-@echo "=== [2] MQTT sensor:publish (doit fonctionner) ==="
-@docker run --rm --network iot-network eclipse-mosquitto:2.0 \
-  mosquitto_pub -h mosquitto -u sensor -P sensor123 \
-  -t "factory/test/m/temperature" -m '{"valeur":20}' 2>&1 && echo "✅ Autorisé"
-@echo ""
-@echo "=== [3] Headers HTTP ==="
-@curl -sI http://localhost:8080/ | grep -E "X-Frame|X-Content|Content-Security" || true
-@echo ""
-@echo "=== [4] Injection Flux bloquée ==="
-@code=$$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/api/history/INJECTED/m/temperature"); \
-  echo "  zone invalide → HTTP $$code"; \
-  [ "$$code" = "400" ] && echo "✅ Bloquée" || echo "❌ Non bloquée"
+	@echo "=== [1] MQTT anonyme (doit être refusé) ==="
+	@docker run --rm --network iot-network eclipse-mosquitto:2.0 \
+	  mosquitto_sub -h mosquitto -t "factory/#" -C 1 -W 3 2>&1 || echo "✅ Refusé"
+	@echo ""
+	@echo "=== [2] MQTT sensor:publish (doit fonctionner) ==="
+	@docker run --rm --network iot-network eclipse-mosquitto:2.0 \
+	  mosquitto_pub -h mosquitto -u sensor -P sensor123 \
+	  -t "factory/test/m/temperature" -m '{"valeur":20}' 2>&1 && echo "✅ Autorisé"
+	@echo ""
+	@echo "=== [3] Headers HTTP ==="
+	@curl -sI http://localhost:8080/ | grep -E "X-Frame|X-Content|Content-Security" || true
+	@echo ""
+	@echo "=== [4] Injection Flux bloquée ==="
+	@code=$$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/api/history/INJECTED/m/temperature"); \
+	  echo "  zone invalide → HTTP $$code"; \
+	  [ "$$code" = "400" ] && echo "✅ Bloquée" || echo "❌ Non bloquée"
 # ─── DevSecOps ────────────────────────────────────────────────────────────────
 pre-commit-install: ## Installe les hooks pre-commit dans le repo git
 	pip install pre-commit detect-secrets -q

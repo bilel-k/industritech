@@ -377,6 +377,14 @@ Sois concis, professionnel, toujours en français.`;
 
 const chatLimiter = rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false });
 
+app.get('/api/chat/status', (req, res) => {
+  res.json({
+    enabled: Boolean(GROQ_API_KEY),
+    model: GROQ_MODEL,
+    rateLimitPerMinute: 20,
+  });
+});
+
 app.post('/api/chat', chatLimiter, async (req, res) => {
   const { message, history = [] } = req.body || {};
   if (!message || typeof message !== 'string' || message.length > 500)
