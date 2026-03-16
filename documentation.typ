@@ -72,8 +72,8 @@
 #show heading.where(level: 1): it => {
   pagebreak(weak: true)
   block(sticky: true)[
-    v(0.4cm)
-    grid(
+    #v(0.4cm)
+    #grid(
       columns: (6pt, 1fr),
       gutter: 0pt,
       block(width: 6pt, height: 100%, fill: clr-sky, radius: (top-left: 4pt, bottom-left: 4pt)),
@@ -87,7 +87,7 @@
         #it
       ],
     )
-    v(0.35cm)
+    #v(0.35cm)
   ]
 }
 
@@ -95,17 +95,17 @@
 #show heading.where(level: 2): it => {
   v(0.5cm)
   block(sticky: true)[
-    block[
+    #block[
       #set text(fill: clr-blue, weight: "bold", size: 12pt)
       #it
     ]
-    v(1pt)
-    stack(
+    #v(1pt)
+    #stack(
       dir: ltr,
       block(width: 40pt, height: 2.5pt, fill: clr-sky, radius: 2pt),
       block(height: 2.5pt, fill: gradient.linear(clr-sky, luma(220)), radius: (top-right: 2pt, bottom-right: 2pt)),
     )
-    v(0.2cm)
+    #v(0.2cm)
   ]
 }
 
@@ -113,7 +113,7 @@
 #show heading.where(level: 3): it => {
   v(0.3cm)
   block(sticky: true)[
-    grid(
+    #grid(
       columns: (10pt, 1fr),
       gutter: 5pt,
       align(horizon)[#block(width: 3pt, height: 11pt, fill: clr-sky, radius: 2pt)],
@@ -124,7 +124,7 @@
         ]
       ],
     )
-    v(0.1cm)
+    #v(0.1cm)
   ]
 }
 
