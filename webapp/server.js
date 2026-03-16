@@ -354,6 +354,55 @@ app.post('/api/demo/trigger', (req, res) => {
   res.json({ ok: true, machine, zone, duration: totalSteps });
 });
 
+// ── API : Chatbot IA (Groq) ──────────────────────────────────────────────────
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_MODEL   = process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile';
+
+const CHAT_SYSTEM_PROMPT = `Tu es un assistant IA intégré à IndustriTech, \
+une plateforme de supervision industrielle IoT.
+
+Contexte de l'usine :
+- 14 machines réparties en 3 zones :
+  • Atelier : presse, robot, compresseur, tour_cnc, poste_soudure, convoyeur
+  • Salle Serveur : rack_principal, rack_secondaire, onduleur, climatiseur
+  • Local Électrique : armoire_1, armoire_2, transformateur, groupe_electrogene
+- 43 capteurs : température, humidité, vibration, courant, vitesse, luminosité,
+  pression, puissance, débit, niveau_sonore, motion, distance
+- Stack : Mosquitto 2.0 (MQTT/TLS), InfluxDB 2.7, Grafana 10.2, Node-RED 3.1,
+  Express.js (port 8080), Three.js 3D
+- Pipeline DevSecOps 7 étapes : Lint, SAST, SCA, Secrets, Trivy, ZAP, OPA/Rego
+
+Réponds aux questions sur l'état des machines, anomalies, architecture, sécurité IoT.
+Sois concis, professionnel, toujours en français.`;
+
+const chatLimiter = rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false });
+
+app.post('/api/chat', chatLimiter, async (req, res) => {
+  const { message, history = [] } = req.body || {};
+  if (!message || typeof message !== 'string' || message.length > 500)
+    return res.status(400).json({ error: 'Message invalide (max 500 caractères)' });
+  if (!GROQ_API_KEY)
+    return res.status(503).json({ error: 'Chatbot non configuré — ajoutez GROQ_API_KEY dans .env' });
+
+  const messages = [
+    { role: 'system', content: CHAT_SYSTEM_PROMPT },
+    ...history.slice(-6).map(h => ({ role: h.role, content: String(h.content).slice(0, 500) })),
+    { role: 'user', content: message },
+  ];
+
+  try {
+    const resp = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      { model: GROQ_MODEL, messages, max_tokens: 512, temperature: 0.7 },
+      { headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+    );
+    res.json({ reply: resp.data.choices[0].message.content });
+  } catch (err) {
+    console.error('[Chat]', err.response?.data || err.message);
+    res.status(502).json({ error: 'Erreur lors de la génération de la réponse' });
+  }
+});
+
 // ── SPA catch-all ─────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

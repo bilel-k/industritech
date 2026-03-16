@@ -93,7 +93,8 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      # Plugins déjà présents dans ./grafana/data/plugins/ via volume monté
+      # - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     networks:
       - iot-network
     depends_on:
@@ -136,6 +137,8 @@ services:
       - INFLUX_BUCKET=${INFLUXDB_BUCKET:-iot_data}
       - PORT=8080
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
     networks:
       - iot-network
     depends_on:
