@@ -293,7 +293,6 @@
   [MQTT], [1883 / 8883 / 9001], [Docker interne / TLS / WebSocket],
 )
 
-#pagebreak()
 #set page(header: auto, footer: auto)
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -301,8 +300,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #outline(depth: 2, indent: 1em)
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Architecture generale
@@ -361,8 +358,6 @@ La plateforme repose sur six services Docker communicant via un reseau bridge pr
   [8883], [Mosquitto], [MQTT/TLS], [Clients externes securises],
   [9001], [Mosquitto], [WebSocket], [Connexion MQTT depuis la webapp],
 )
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Webapp de supervision -- IndustriTech
@@ -514,8 +509,6 @@ Au premier chargement de chaque session, un modal presente les fonctionnalites p
 - *Rate Limiting* -- 120 req/min/IP sur toutes les routes `/api/*`
 - *Validation des parametres* -- whitelist regex avant injection dans requetes Flux
 
-#pagebreak()
-
 // ─────────────────────────────────────────────────────────────────────────────
 = Composants de la plateforme
 // ─────────────────────────────────────────────────────────────────────────────
@@ -644,8 +637,6 @@ machine_data
   timestamp: nanoseconde (precision=ns)
 ```
 
-#pagebreak()
-
 // ─────────────────────────────────────────────────────────────────────────────
 = Simulateur de capteurs
 // ─────────────────────────────────────────────────────────────────────────────
@@ -760,8 +751,6 @@ Le simulateur Python (`simulator/sensor_simulator.py`) emule *43 capteurs physiq
 
 *Topic MQTT :* `factory/{zone}/{machine}/{capteur}`
 
-#pagebreak()
-
 // ─────────────────────────────────────────────────────────────────────────────
 = Securite
 // ─────────────────────────────────────────────────────────────────────────────
@@ -798,8 +787,6 @@ Cree dans `mosquitto/config/` :
 == Reseau Docker
 
 Tous les services communiquent via le reseau bridge `iot-network`. Aucun trafic inter-services ne transite par l'interface hote.
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Docker Compose
@@ -869,8 +856,6 @@ networks:
     name: iot-network
 ```
 
-#pagebreak()
-
 // ─────────────────────────────────────────────────────────────────────────────
 = Makefile -- Reference des commandes
 // ─────────────────────────────────────────────────────────────────────────────
@@ -894,12 +879,11 @@ networks:
   [`make mqtt-sub`], [Ecoute tous les topics `factory/#`],
   [`make mqtt-pub-test`], [Publie un message de test MQTT],
   [`make influxdb-query`], [Requete Flux de test sur 5 dernieres minutes],
-  [`make test`], [Execute la suite de tests d'integration (18 tests)],
+  [`make demo`], [Demarre la stack + execute les 24 tests de sante (mode jury)],
+  [`make test`], [Execute la suite de tests d'integration (24 tests)],
   [`make clean`], [Supprime toutes les donnees persistees (volumes)],
   [`make clean-all`], [Supprime donnees + certificats],
 )
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Tests d'integration
@@ -930,13 +914,17 @@ networks:
   [16], [Certificat mosquitto.crt present], [test -f],
   [17], [Certificat mosquitto.key present], [test -f],
   [18], [flows.json present], [test -f],
+  [19], [iot-webapp est running], [docker ps filter],
+  [20], [iot-sensor-sim est running], [docker ps filter],
+  [21], [Webapp :8080 accessible], [netcat -z -w1 (25 retries)],
+  [22], [Webapp home -> 200], [curl /],
+  [23], [Chat status endpoint -> 200], [curl /api/chat/status],
+  [24], [Chat status JSON parse OK], [python3 json.load],
 )
 
 #success-box[
-  Resultat production : *18/18 PASS* -- pipeline complet operationnel.
+  Resultat production : *24/24 PASS* -- pipeline complet operationnel.
 ]
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Exploitation et maintenance
@@ -1245,8 +1233,6 @@ Application du modele *STRIDE* sur le vecteur MQTT -- pipeline critique :
   [8080], [Webapp], [Oui], [Derriere Nginx + HTTPS (Let's Encrypt)],
   [8086], [InfluxDB], [Oui], [Fermer vers l'exterieur -- acces interne uniquement],
 )
-
-#pagebreak()
 
 // ─────────────────────────────────────────────────────────────────────────────
 = Annexes
