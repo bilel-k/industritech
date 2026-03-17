@@ -71,30 +71,28 @@
 // ── H1 : bande navy avec accent sky sur la gauche ────────────────────────────
 #show heading.where(level: 1): it => {
   pagebreak(weak: true)
-  block(sticky: true)[
-    #v(0.4cm)
-    #grid(
-      columns: (6pt, 1fr),
-      gutter: 0pt,
-      block(width: 6pt, height: 100%, fill: clr-sky, radius: (top-left: 4pt, bottom-left: 4pt)),
-      block(
-        width: 100%,
-        fill: clr-navy,
-        inset: (x: 14pt, y: 11pt),
-        radius: (top-right: 6pt, bottom-right: 6pt),
-      )[
-        #set text(fill: white, weight: "extrabold", size: 13.5pt, tracking: 0.3pt)
-        #it
-      ],
-    )
-    #v(0.35cm)
-  ]
+  v(0.4cm)
+  grid(
+    columns: (6pt, 1fr),
+    gutter: 0pt,
+    block(width: 6pt, height: 100%, fill: clr-sky, radius: (top-left: 4pt, bottom-left: 4pt)),
+    block(
+      width: 100%,
+      fill: clr-navy,
+      inset: (x: 14pt, y: 11pt),
+      radius: (top-right: 6pt, bottom-right: 6pt),
+    )[
+      #set text(fill: white, weight: "extrabold", size: 13.5pt, tracking: 0.3pt)
+      #it
+    ],
+  )
+  v(0.35cm)
 }
 
 // ── H2 : texte bleu + filet dégradé ──────────────────────────────────────────
 #show heading.where(level: 2): it => {
-  v(0.5cm)
   block(sticky: true)[
+    #v(0.5cm)
     #block[
       #set text(fill: clr-blue, weight: "bold", size: 12pt)
       #it
@@ -111,8 +109,8 @@
 
 // ── H3 : tiret sky + texte moyen ─────────────────────────────────────────────
 #show heading.where(level: 3): it => {
-  v(0.3cm)
   block(sticky: true)[
+    #v(0.3cm)
     #grid(
       columns: (10pt, 1fr),
       gutter: 5pt,
