@@ -7,6 +7,8 @@
   > Stack complète de monitoring IoT en temps réel avec une approche **DevSecOps** intégrée.
 
   [![CI DevSecOps](https://github.com/bilel-k/industritech/actions/workflows/devsecops.yml/badge.svg)](https://github.com/bilel-k/industritech/actions/workflows/devsecops.yml)
+  [![Démo vidéo](https://img.shields.io/badge/Démo-▶%20Voir%20la%20vidéo-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/OvhKvS_-88Q)
+
   ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=flat-square&logo=docker&logoColor=white)
   ![Node.js](https://img.shields.io/badge/Node.js_20-339933?style=flat-square&logo=nodedotjs&logoColor=white)
   ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat-square&logo=python&logoColor=white)
